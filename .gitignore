@@ -1,0 +1,13 @@
+Ignore the virtualenv files
+venv/*
+
+# Ignore pycache
+__pycache__/*
+apps/__pycache__/*
+
+# Ignore Mac specific files
+.DS_Store
+
+\#*\#
+.\#*
+*txt
