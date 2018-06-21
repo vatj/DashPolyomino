@@ -12,30 +12,37 @@ import plotly.graph_objs as go
 import pandas as pd
 import re
 
-ngenes = 3
-colours = 7
-metric_colours = 9
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V4/exhaustive/threshold95p/'
-genome_filename = "GenomeMetrics_N" + format(ngenes) + "_C" + format(colours) + "_Cx" + format(metric_colours) + ".txt"
+parameters = dict()
+parameters['ngenes'] = 3
+parameters['colours'] = 7
+parameters['metric_colours'] = 9
+parameters['builds'] = 10
+parameters['njiggle'] = 30
+parameters['threshold'] = 50
+
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
+genome_filename = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
 genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'pIDs']
 
-
 df_genome = pd.read_csv(filepath + genome_filename, sep=" ", header=None, names=genome_names)
+
+df_genome['evo'] = df_genome['evolvability'] - df_genome['rare'] - df_genome['loop']
+genome_names.insert(4, 'evo')
 
 
 layout = html.Div(children=[
     html.H3(children='Genome Metrics'),
-    dcc.Dropdown(id='dropdown-x-genome', options=[
-        {'label': i, 'value': i} for i in df_genome.columns.values[1:-1]
+    dcc.Dropdown(id='dropdown-x-genome', value=genome_names[1], options=[
+        {'label': i, 'value': i} for i in genome_names[1:-1]
     ], multi=False, placeholder='x-axis, ' + genome_names[1]),
-    dcc.Dropdown(id='dropdown-y-genome', options=[
-        {'label': i, 'value': i} for i in df_genome.columns.values[1:-1]
+    dcc.Dropdown(id='dropdown-y-genome', value=genome_names[2], options=[
+        {'label': i, 'value': i} for i in genome_names[1:-1]
     ], multi=False, placeholder='y-axis, ' + genome_names[2]),
     dcc.Dropdown(id='dropdown-genome', options=[
         {'label': i, 'value': re.escape(i)} for i in df_genome.pIDs.unique()
-    ], multi=True, placeholder='Filter by pID set :' + df_genome.pIDs[11]),
-    dcc.Graph(id='graph-container-genome'),
-    dcc.Link('Go to Set Scatter', href='/apps/app_scatter_set')
+    ], multi=True, value=re.escape(df_genome.pIDs[11]),
+     placeholder='Filter by pID set :' + df_genome.pIDs[11]),
+    dcc.Graph(id='graph-container-genome')
 ], className="content")
 
 @app.callback(

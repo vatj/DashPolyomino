@@ -12,7 +12,6 @@ import numpy as np
 import plotly
 from dash.dependencies import Input, Output, State
 
-
 import pandas as pd
 import re
 
@@ -23,43 +22,53 @@ parameters['ngenes'] = 3
 parameters['colours'] = 7
 parameters['metric_colours'] = 9
 parameters['builds'] = 10
-parameters['njiggle'] = 30
+parameters['njiggle'] = 100
 parameters['threshold'] = 50
 
 filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
-genome_filename = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
-genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'pIDs']
+set_filename = 'SetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
+set_names = ['srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'analysed', 'total_neutral', 'diversity', 'pIDs']
 
-df_genome = pd.read_csv(filepath + genome_filename, sep=" ", header=None, names=genome_names)
+df_ref1 = pd.read_csv(filepath + set_filename, sep=" ", header=None, names=set_names)
 
-df_genome['neutral_weight'] = df_genome['neutral_weight'] * parameters['njiggle']
+set_filename = 'SetMetrics2_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
 
-df_genome['evo'] = df_genome['evolvability'] - df_genome['rare'] - df_genome['loop']
-genome_names.insert(4, 'evo')
+df_ref2 = pd.read_csv(filepath + set_filename, sep=" ", header=None, names=set_names)
+
+df_ref1['evo'] = df_ref1['evolvability'] - df_ref1['rare'] - df_ref1['loop']
+df_ref2['evo'] = df_ref2['evolvability'] - df_ref2['rare'] - df_ref2['loop']
+set_names.insert(3, 'evo')
+
+df_ref1.set_index(keys='pIDs', inplace=True)
+df_ref2.set_index(keys='pIDs', inplace=True)
+
+df_comp =(df_ref1 - df_ref2).abs()
+df_comp['pIDs'] = df_comp.index.values
+df_comp.dropna(inplace=True)
 
 layout = html.Div([
-    html.H3('Genome Metric Table'),
+    html.H3('Set Metric Table'),
     dt.DataTable(
-        rows=df_genome.round(3).to_dict('records'),
+        rows=df_comp.round(3).to_dict('records'),
         # optional - sets the order of columns
-        columns=genome_names,
+        columns=set_names,
         row_selectable=True,
         filterable=True,
         sortable=True,
         selected_row_indices=[],
-        id='datatable-polyomino-genome'
+        id='datatable-polyomino-reproducibility'
     ),
     html.Div(id='selected-indexes'),
     dcc.Graph(
-        id='graph-polyomino-genome'
+        id='graph-polyomino-reproducibility'
     ),
 ], className="container")
 
 
 @app.callback(
-    Output('datatable-polyomino-genome', 'selected_row_indices'),
-    [Input('graph-polyomino-genome', 'clickData')],
-    [State('datatable-polyomino-genome', 'selected_row_indices')])
+    Output('datatable-polyomino-reproducibility', 'selected_row_indices'),
+    [Input('graph-polyomino-reproducibility', 'clickData')],
+    [State('datatable-polyomino-reproducibility', 'selected_row_indices')])
 def update_selected_row_indices(clickData, selected_row_indices):
     if clickData:
         for point in clickData['points']:
@@ -71,14 +80,14 @@ def update_selected_row_indices(clickData, selected_row_indices):
 
 
 @app.callback(
-    Output('graph-polyomino-genome', 'figure'),
-    [Input('datatable-polyomino-genome', 'rows'),
-     Input('datatable-polyomino-genome', 'selected_row_indices')])
+    Output('graph-polyomino-reproducibility', 'figure'),
+    [Input('datatable-polyomino-reproducibility', 'rows'),
+     Input('datatable-polyomino-reproducibility', 'selected_row_indices')])
 def update_figure(rows, selected_row_indices):
     dff = pd.DataFrame(rows)
     fig = plotly.tools.make_subplots(
         rows=3, cols=1,
-        subplot_titles=('Robustness', 'Neutral Weight', 'Evolvability',),
+        subplot_titles=('Robustness', 'Diversity', 'Evolvability',),
         shared_xaxes=True)
     marker = {'color': ['#0074D9']*len(dff)}
     for i in (selected_row_indices or []):
@@ -91,7 +100,7 @@ def update_figure(rows, selected_row_indices):
     }, 1, 1)
     fig.append_trace({
         'x': dff['pIDs'],
-        'y': dff['neutral_weight'],
+        'y': dff['diversity'],
         'type': 'bar',
         'marker': marker
     }, 2, 1)
@@ -102,14 +111,14 @@ def update_figure(rows, selected_row_indices):
         'marker': marker
     }, 3, 1)
     fig['layout']['showlegend'] = False
-    fig['layout']['height'] = 800
-    fig['layout']['margin'] = {
-        'l': 40,
-        'r': 10,
-        't': 60,
-        'b': 200
-    }
-    fig['layout']['yaxis2']['type'] = 'log'
+    fig['layout']['height'] = 1200
+    # fig['layout']['margin'] = {
+    #     'l': 40,
+    #     'r': 10,
+    #     't': 60,
+    #     'b': 200
+    # }
+    # fig['layout']['yaxis2']['type'] = 'log'
     return fig
 
 #

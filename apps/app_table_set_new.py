@@ -18,19 +18,25 @@ import re
 
 from app import app
 
+parameters = dict()
+parameters['ngenes'] = 3
+parameters['colours'] = 7
+parameters['metric_colours'] = 9
+parameters['builds'] = 10
+parameters['njiggle'] = 30
+parameters['threshold'] = 50
 
-
-ngenes = 3
-colours = 7
-metric_colours = 9
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V4/exhaustive/'
-set_filename = "SetMetrics_N" + format(ngenes) + "_C" + format(colours) + "_Cx" + format(metric_colours) + ".txt"
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
+set_filename = 'SetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
 set_names = ['srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'analysed', 'total_neutral', 'diversity', 'pIDs']
 
 df_set = pd.read_csv(filepath + set_filename, sep=" ", header=None, names=set_names)
 
+df_set['evo'] = df_set['evolvability'] - df_set['rare'] - df_set['loop']
+set_names.insert(3, 'evo')
+
 layout = html.Div([
-    html.H3('Metric Table'),
+    html.H3('Set Metric Table'),
     dt.DataTable(
         rows=df_set.round(3).to_dict('records'),
         # optional - sets the order of columns
@@ -70,7 +76,7 @@ def update_figure(rows, selected_row_indices):
     dff = pd.DataFrame(rows)
     fig = plotly.tools.make_subplots(
         rows=3, cols=1,
-        subplot_titles=('Robustness', 'Neutral Weight', 'Evolvability',),
+        subplot_titles=('Robustness', 'Diversity', 'Evolvability',),
         shared_xaxes=True)
     marker = {'color': ['#0074D9']*len(dff)}
     for i in (selected_row_indices or []):
@@ -83,7 +89,7 @@ def update_figure(rows, selected_row_indices):
     }, 1, 1)
     fig.append_trace({
         'x': dff['pIDs'],
-        'y': dff['neutral_weight'],
+        'y': dff['diversity'],
         'type': 'bar',
         'marker': marker
     }, 2, 1)
@@ -94,14 +100,14 @@ def update_figure(rows, selected_row_indices):
         'marker': marker
     }, 3, 1)
     fig['layout']['showlegend'] = False
-    fig['layout']['height'] = 800
-    fig['layout']['margin'] = {
-        'l': 40,
-        'r': 10,
-        't': 60,
-        'b': 200
-    }
-    fig['layout']['yaxis2']['type'] = 'log'
+    fig['layout']['height'] = 1200
+    # fig['layout']['margin'] = {
+    #     'l': 40,
+    #     'r': 10,
+    #     't': 60,
+    #     'b': 200
+    # }
+    # fig['layout']['yaxis2']['type'] = 'log'
     return fig
 
 #

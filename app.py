@@ -18,15 +18,22 @@ app.config.suppress_callback_exceptions = True
 # from apps import app_table_set, app_table_genome
 from apps import app_scatter_set, app_scatter_genome
 from apps import app_table_set_new, app_table_genome_new
+from apps import app_reproducibility_scatter, app_reproducibility_table
+from apps import app_duplication_jiggle_table
 
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     html.Div(id='page-content'),
     html.Div(dt.DataTable(rows=[{}]), style={'display': 'none'}),
-    html.Div(dcc.Link('Go to Set Table', href='/apps/app_table_set_new')),
-    html.Div(dcc.Link('Go to Genome Table', href='/apps/app_table_genome_new')),
-    html.Div(dcc.Link('Go to Set scatter plot', href='/apps/app_scatter_set')),
-    html.Div(dcc.Link('Go to Genome scatter plot', href='/apps/app_scatter_genome'))
+    html.Div(
+    [html.P(dcc.Link('Go to Set Table', href='/apps/app_table_set_new')),
+    html.P(dcc.Link('Go to Genome Table', href='/apps/app_table_genome_new')),
+    html.P(dcc.Link('Go to Set scatter plot', href='/apps/app_scatter_set')),
+    html.P(dcc.Link('Go to Genome scatter plot', href='/apps/app_scatter_genome')),
+    html.P(dcc.Link('Go to Reproducibility scatter plot', href='/apps/app_reproducibility_scatter')),
+    html.P(dcc.Link('Go to Reproducibility table', href='/apps/app_reproducibility_table')),
+    html.P(dcc.Link('Go to Duplication table', href='/apps/app_duplication_jiggle_table'))],
+    style={'align': 'center'})
 ])
 
 
@@ -34,15 +41,21 @@ app.layout = html.Div([
               [Input('url', 'pathname')])
 def display_page(pathname):
     if pathname == '/apps/app_table_set_new':
-         return app_table_set_new.layout
+        return app_table_set_new.layout
     elif pathname == '/apps/app_table_genome_new':
-         return app_table_genome_new.layout
+        return app_table_genome_new.layout
     # elif pathname == '/apps/app_table_genome':
     #      return app_table_genome.layout
     elif pathname == '/apps/app_scatter_set':
-         return app_scatter_set.layout
+        return app_scatter_set.layout
     elif pathname == '/apps/app_scatter_genome':
-         return app_scatter_genome.layout
+        return app_scatter_genome.layout
+    elif pathname == '/apps/app_reproducibility_scatter':
+        return app_reproducibility_scatter.layout
+    elif pathname == '/apps/app_reproducibility_table':
+        return app_reproducibility_table.layout
+    elif pathname == '/apps/app_duplication_jiggle_table':
+        return app_duplication_jiggle_table.layout
     else:
         return '404'
 
