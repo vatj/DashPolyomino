@@ -22,7 +22,7 @@ parameters['ngenes'] = 3
 parameters['colours'] = 7
 parameters['metric_colours'] = 9
 parameters['builds'] = 10
-parameters['njiggle'] = 100
+parameters['njiggle'] = 30
 parameters['threshold'] = 50
 
 filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
