@@ -23,7 +23,7 @@ parameters['ngenes'] = 3
 parameters['colours'] = 7
 parameters['metric_colours'] = 9
 parameters['builds'] = 40
-parameters['njiggle'] = 30
+parameters['njiggle'] = 200
 parameters['threshold'] = 25
 
 filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
@@ -37,8 +37,22 @@ df_set['evo'] = df_set['evolvability'] - df_set['rare'] - df_set['loop']
 set_names.insert(3, 'evo')
 set_names.remove('diversity_tracker')
 
+genome_filename = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
+genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'frequencies', 'pIDs']
+
+df_genome = pd.read_csv(filepath + genome_filename, sep=" ", header=None, names=genome_names)
+
+df_genome['neutral_weight'] = df_genome['neutral_weight'] * parameters['njiggle']
+df_genome['evo'] = df_genome['evolvability'] - df_genome['rare'] - df_genome['loop']
+genome_names.insert(4, 'evo')
+
+
 layout = html.Div([
-    html.H3('Set Metric Table'),
+    html.H3('Set Metric Table for {ngenes} genes, {colours} coulours'.format(**parameters)),
+    html.P('The metrics have been computed using {metric_colours} colours and \
+    each representant is jiggled {njiggle} times. For each seed, the assembly \
+    is done {builds} times. The threshold for determinism is set at \
+    {threshold}%.'.format(**parameters)),
     dt.DataTable(
         rows=df_set.round(3).to_dict('records'),
         # optional - sets the order of columns
@@ -50,6 +64,11 @@ layout = html.Div([
         id='datatable-set-distribution'
     ),
     html.Div(id='selected-indexes'),
+    html.Div(
+    dcc.Dropdown(id='dropdown-metrics-distribution',
+    options=[{'label': metric, 'value': metric} for metric in genome_names[1:-3]],
+    value=genome_names[1], multi=False, placeholder='Metrics :' + genome_names[1]),
+    style={'width': '200px'}),
     dcc.Graph(
         id='graph-set-distribution'
     ),
@@ -73,53 +92,36 @@ def update_selected_row_indices(clickData, selected_row_indices):
 @app.callback(
     Output('graph-set-distribution', 'figure'),
     [Input('datatable-set-distribution', 'rows'),
-     Input('datatable-set-distribution', 'selected_row_indices')])
-def update_figure(rows, selected_row_indices):
-    data = pd.DataFrame()
+     Input('datatable-set-distribution', 'selected_row_indices'),
+     Input('dropdown-metrics-distribution', 'value')])
+def update_figure(rows, selected_row_indices, metric):
+    data_diversity = pd.DataFrame()
     dff = pd.DataFrame(rows)
+    titles = []
+    for i in (selected_row_indices or []):
+        titles.append(metric + ' histogram for genome representants <br> of pID set : ' + dff['pIDs'][i])
+        titles.append('Diversity tracking for pID set : ' + dff['pIDs'][i])
     fig = plotly.tools.make_subplots(
-        rows=max(1, len(selected_row_indices)), cols=1,
-        subplot_titles=[('Diversity tracking for pID set : ' + dff['pIDs'][i]) for i in selected_row_indices],
+        rows= max(1, len(selected_row_indices)), cols=2,
+        subplot_titles=titles,
         shared_xaxes=False)
-    marker = {'color': ['#0074D9']*len(dff)}
     fig_index = 0
     for i in (selected_row_indices or []):
         fig_index += 1
         # marker['color'][i] = '#FF851B'
-        data[str(i)] = pd.Series(dff['diversity_tracker'][i])
+        data_diversity[str(i)] = pd.Series(dff['diversity_tracker'][i])
         fig.append_trace({
-            'x': pd.Series(range(len(data[str(i)].dropna()))),
-            'y': data[str(i)],
-            'type': 'scatter',
-            'marker': marker
+            'x': df_genome[df_genome['pIDs'] == dff['pIDs'][i]][metric],
+            'type': 'histogram'
         }, fig_index, 1)
-    # fig.append_trace({
-    #     'x': dff['pIDs'],
-    #     'y': dff['interrobustness'],
-    #     'type': 'bar',
-    #     'marker': marker
-    # }, 1, 1)
-    # fig.append_trace({
-    #     'x': dff['pIDs'],
-    #     'y': dff['diversity'],
-    #     'type': 'bar',
-    #     'marker': marker
-    # }, 2, 1)
-    # fig.append_trace({
-    #     'x': dff['pIDs'],
-    #     'y': dff['evolvability'],
-    #     'type': 'bar',
-    #     'marker': marker
-    # }, 3, 1)
+        fig.append_trace({
+            'x': pd.Series(range(len(data_diversity[str(i)].dropna()))),
+            'y': data_diversity[str(i)],
+            'type': 'scatter',
+            'mode': 'lines+markers'
+        }, fig_index, 2)
     fig['layout']['showlegend'] = False
     fig['layout']['height'] = max(fig_index, 1) * 400
-    # fig['layout']['margin'] = {
-    #     'l': 40,
-    #     'r': 10,
-    #     't': 60,
-    #     'b': 200
-    # }
-    # fig['layout']['yaxis2']['type'] = 'log'
     return fig
 
 #
