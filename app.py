@@ -19,7 +19,7 @@ app.config.suppress_callback_exceptions = True
 from apps import app_scatter_set, app_scatter_genome
 from apps import app_table_set_new, app_table_genome_new
 from apps import app_reproducibility_scatter, app_reproducibility_table
-from apps import app_duplication_jiggle_table
+from apps import app_duplication_jiggle_genome_table, app_duplication_jiggle_set_table
 from apps import app_table_set_distribution
 
 app.layout = html.Div([
@@ -33,7 +33,8 @@ app.layout = html.Div([
     html.P(dcc.Link('Go to Genome scatter plot', href='/apps/app_scatter_genome')),
     html.P(dcc.Link('Go to Reproducibility scatter plot', href='/apps/app_reproducibility_scatter')),
     html.P(dcc.Link('Go to Reproducibility table', href='/apps/app_reproducibility_table')),
-    html.P(dcc.Link('Go to Duplication table', href='/apps/app_duplication_jiggle_table')),
+    html.P(dcc.Link('Go to Duplication Genome table', href='/apps/app_duplication_jiggle_genome_table')),
+    html.P(dcc.Link('Go to Duplication Set table', href='/apps/app_duplication_jiggle_set_table')),
     html.P(dcc.Link('Go to Set distribution table', href='/apps/app_table_set_distribution'))],
     style={'align': 'center'})
 ])
@@ -56,8 +57,10 @@ def display_page(pathname):
         return app_reproducibility_scatter.layout
     elif pathname == '/apps/app_reproducibility_table':
         return app_reproducibility_table.layout
-    elif pathname == '/apps/app_duplication_jiggle_table':
-        return app_duplication_jiggle_table.layout
+    elif pathname == '/apps/app_duplication_jiggle_genome_table':
+        return app_duplication_jiggle_genome_table.layout
+    elif pathname == '/apps/app_duplication_jiggle_set_table':
+        return app_duplication_jiggle_set_table.layout
     elif pathname == '/apps/app_table_set_distribution':
         return app_table_set_distribution.layout
     else:
