@@ -6,6 +6,8 @@ import dash_table_experiments as dt
 
 import pandas as pd
 import re
+import json
+from scripts.extra import extract_parameters
 
 from dash.dependencies import Input, Output
 
@@ -14,6 +16,9 @@ os.nice(15)
 app = dash.Dash()
 server = app.server
 app.config.suppress_callback_exceptions = True
+
+with open("./index.json") as fopen:
+    file_names = json.load(fopen)
 
 # from apps import app_table_set, app_table_genome
 from apps import app_scatter_set, app_scatter_genome

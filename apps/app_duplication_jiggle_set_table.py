@@ -15,61 +15,63 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import re
 
-from app import app
-
-parameters = dict()
-parameters['ngenes'] = 3
-parameters['colours'] = 7
-parameters['metric_colours'] = 9
-parameters['builds'] = 40
-parameters['njiggle'] = 200
-parameters['threshold'] = 25
-
+from app import app, file_names, extract_parameters
 
 ## Load set metric files
 #############################
+jiggle_set_names = [name for name in file_names if name[:7] == 'JiggleS']
+duplicate_set_names = [name for name in file_names if name[:16] == 'JiggleDuplicateS']
+jiggle_set_names.sort()
+duplicate_set_names.sort()
+
+dict_df_set_jiggle = dict()
+dict_df_set_dup = dict()
+
 filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
-jiggle_filename = 'JiggleSetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
-parameters['ngenes'] += 1
-jiggle_duplicate_filename = 'JiggleDuplicateSetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
-set_names = ['srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'analysed', 'total_neutral', 'diversity', 'diversity_tracker', 'pIDs']
 
-df_jiggle = pd.read_csv(filepath + jiggle_filename, sep=" ", header=None, names=set_names)
-df_dup = pd.read_csv(filepath + jiggle_duplicate_filename, sep=" ", header=None, names=set_names)
+for name_jiggle, name_duplicate in zip(jiggle_set_names, duplicate_set_names):
+    dict_df_set_jiggle[name_jiggle] = pd.read_csv(filepath + name_jiggle, sep=" ")
+    dict_df_set_jiggle[name_jiggle]['diversity_tracker'] = (dict_df_set_jiggle[name_jiggle]['diversity_tracker']).apply(lambda x: np.array(eval(x)))
+    dict_df_set_dup[name_duplicate] = pd.read_csv(filepath + name_duplicate, sep=" ")
+    dict_df_set_dup[name_duplicate]['diversity_tracker'] = (dict_df_set_dup[name_duplicate]['diversity_tracker']).apply(lambda x: np.array(eval(x)))
 
-df_jiggle['diversity_tracker'] = df_jiggle['diversity_tracker'].apply(lambda x: np.array(eval(x)))
-df_jiggle['evo'] = df_jiggle['evolvability'] - df_jiggle['rare'] - df_jiggle['loop']
-df_dup['diversity_tracker'] = df_dup['diversity_tracker'].apply(lambda x: np.array(eval(x)))
-df_dup['evo'] = df_dup['evolvability'] - df_dup['rare'] - df_dup['loop']
-set_names.insert(3, 'evo')
-set_names.remove('diversity_tracker')
+display_names = dict_df_set_jiggle[jiggle_set_names[0]].columns.values.tolist()
+display_names.remove('diversity_tracker')
+display_names.remove('misclassified_details')
+display_names.remove('originals')
+
+# Load genome metric files
 #############################
+jiggle_genome_names = [name for name in file_names if name[:7] == 'JiggleG']
+duplicate_genome_names = [name for name in file_names if name[:16] == 'JiggleDuplicateG']
+jiggle_genome_names.sort()
+duplicate_genome_names.sort()
 
-## Load genome metric files
-#############################
-parameters['ngenes'] -= 1
-jiggle_filename_genome = 'JiggleGenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
-parameters['ngenes'] += 1
-jiggle_duplicate_filename_genome = 'JiggleDuplicateGenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
-genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'frequencies', 'pIDs']
+dict_df_genome_jiggle = dict()
+dict_df_genome_dup = dict()
 
-df_jiggle_genome = pd.read_csv(filepath + jiggle_filename_genome, sep=" ", header=None, names=genome_names)
-df_dup_genome = pd.read_csv(filepath + jiggle_duplicate_filename_genome, sep=" ", header=None, names=genome_names)
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
 
-df_jiggle_genome['evo'] = df_jiggle_genome['evolvability'] - df_jiggle_genome['rare'] - df_jiggle_genome['loop']
-df_dup_genome['evo'] = df_dup_genome['evolvability'] - df_dup_genome['rare'] - df_dup_genome['loop']
-genome_names.insert(4, 'evo')
-##########################
+for name_jiggle, name_duplicate in zip(jiggle_genome_names, duplicate_genome_names):
+    dict_df_genome_jiggle[name_jiggle] = pd.read_csv(filepath + name_jiggle, sep=" ")
+    dict_df_genome_dup[name_duplicate] = pd.read_csv(filepath + name_duplicate, sep=" ")
 
+genome_names = dict_df_genome_jiggle[jiggle_genome_names[0]].columns.values.tolist()
 
 ## Page layout
 #############################
 layout = html.Div([
+    html.H3('Which file do you wish to explore?'),
+    html.Div(
+        dcc.Dropdown(id='dropdown-file-set-duplicate',
+            options=[{'label': name, 'value': name} for name in jiggle_set_names],
+            value=jiggle_set_names[0], multi=False, placeholder=jiggle_set_names[0]),
+        style={'width': '400px'}),
     html.H3('Simple Set Metric Table'),
     dt.DataTable(
-        rows=df_jiggle.round(3).to_dict('records'),
+        rows=dict_df_set_jiggle[jiggle_set_names[0]].round(3).to_dict('records'),
         # optional - sets the order of columns
-        columns=set_names,
+        columns=display_names,
         row_selectable=True,
         filterable=True,
         sortable=True,
@@ -78,9 +80,9 @@ layout = html.Div([
     ),
     html.H3('Duplicate Set Metric Table'),
     dt.DataTable(
-        rows=df_dup.round(3).to_dict('records'),
+        rows=dict_df_set_dup[duplicate_set_names[0]].round(3).to_dict('records'),
         # optional - sets the order of columns
-        columns=set_names,
+        columns=display_names,
         row_selectable=True,
         filterable=True,
         sortable=True,
@@ -89,8 +91,8 @@ layout = html.Div([
     ),
     html.Div(
     dcc.Dropdown(id='dropdown-set-metrics-duplicate',
-    options=[{'label': metric, 'value': metric} for metric in genome_names[1:-3]],
-    value=genome_names[1], multi=False, placeholder='Metrics :' + genome_names[1]),
+    options=[{'label': metric, 'value': metric} for metric in genome_names[2:-3]],
+    value=genome_names[2], multi=False, placeholder='Metrics :' + genome_names[2]),
     style={'width': '200px'}),
     html.Div(id='selected-indexes'),
     dcc.Graph(
@@ -101,39 +103,41 @@ layout = html.Div([
 
 ## Interactive functions
 #############################
-@app.callback(
-    Output('datatable-set-jiggle', 'selected_row_indices'),
-    [Input('graph-set-duplicate-jiggle', 'clickData')],
-    [State('datatable-set-jiggle', 'selected_row_indices')])
-def update_selected_row_indices(clickData, selected_row_indices):
-    if clickData:
-        for point in clickData['points']:
-            if point['pointNumber'] in selected_row_indices:
-                selected_row_indices.remove(point['pointNumber'])
-            else:
-                selected_row_indices.append(point['pointNumber'])
-    return selected_row_indices
 
-# @app.callback(
-#     Output('datatable-set-duplicate-jiggle', 'rows'),
-#     [Input('datatable-set-jiggle', 'rows'),
-#      Input('datatable-set-jiggle', 'selected_row_indices')])
-# def update_duplicate_table(rows, selected_row_indices):
-#     list_genome=[]
-#     for i in (selected_row_indices or []):
-#         list_genome.append(df_jiggle['genome'][i][1:-1])
-#
-#     new_df=df_dup[df_dup.genome.str.contains('|'.join(list_genome))]
-#     return new_df.round(3).to_dict('records')
+## Update Table with data from desired file
+##########################################################
+@app.callback(
+    Output('datatable-set-jiggle', 'rows'),
+    [Input('dropdown-file-set-duplicate', 'value')])
+def update_displayed_file(file):
+    return dict_df_set_jiggle[file].round(3).to_dict('records')
+
+## Update Duplicate Table with data from the corresponding duplicate file
+############################################################################
+@app.callback(
+    Output('datatable-set-duplicate-jiggle', 'rows'),
+    [Input('dropdown-file-set-duplicate', 'value')])
+def update_duplicate_table_with_displayed_file(jiggle_file):
+    parameters = extract_parameters(jiggle_file)
+    parameters['ngenes'] += 1
+    duplicate_name = 'JiggleDuplicateSetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
+    return dict_df_set_dup[duplicate_name].round(3).to_dict('records')
 
 @app.callback(
     Output('graph-set-duplicate-jiggle', 'figure'),
     [Input('datatable-set-jiggle', 'rows'),
+     Input('datatable-set-duplicate-jiggle', 'rows'),
      Input('datatable-set-jiggle', 'selected_row_indices'),
-     Input('dropdown-set-metrics-duplicate', 'value')])
-def update_figure(rows, selected_row_indices, metric):
+     Input('dropdown-set-metrics-duplicate', 'value'),
+     Input('dropdown-file-set-duplicate', 'value')])
+def update_figure(rows_jiggle, rows_dup, selected_row_indices, metric, file):
     data_diversity = pd.DataFrame()
-    dff = pd.DataFrame(rows)
+    dff = pd.DataFrame(rows_jiggle)
+    dff_dup = pd.DataFrame(rows_dup)
+    parameters = extract_parameters(file)
+    file_genome_jiggle = 'JiggleGenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
+    parameters['ngenes'] += 1
+    file_genome_dup = 'JiggleDuplicateGenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}.txt'.format(**parameters)
     titles = []
     for i in (selected_row_indices or []):
         titles.append(metric + ' histogram for genome representants <br> of pID set : ' + dff['pIDs'][i])
@@ -146,17 +150,17 @@ def update_figure(rows, selected_row_indices, metric):
     for i in (selected_row_indices or []):
         fig_index += 1
         fig.append_trace({
-            'x': df_jiggle_genome[df_jiggle_genome['pIDs'] == dff['pIDs'][i]][metric],
+            'x': dict_df_genome_jiggle[file_genome_jiggle][dict_df_genome_jiggle[file_genome_jiggle]['pIDs'] == dff['pIDs'][i]][metric],
             'type': 'histogram',
             'name': 'simple'
         }, fig_index, 1)
         fig.append_trace({
-            'x': df_dup_genome[df_dup_genome['pIDs'] == dff['pIDs'][i]][metric],
+            'x': dict_df_genome_dup[file_genome_dup][dict_df_genome_dup[file_genome_dup]['pIDs'] == dff['pIDs'][i]][metric],
             'type': 'histogram',
             'name': 'dup'
         }, fig_index, 1)
         data_diversity[str(i)] = pd.Series(dff['diversity_tracker'][i])
-        df_temp = df_dup[df_dup['pIDs'] == (dff['pIDs'][i])]
+        df_temp = dff_dup[dff_dup['pIDs'] == (dff['pIDs'][i])]
         data_diversity[str(i) + '_dup'] = pd.Series(df_temp['diversity_tracker'][df_temp['diversity_tracker'].first_valid_index()])
         fig.append_trace({
             'x': pd.Series(range(len(data_diversity[str(i)].dropna()))),
