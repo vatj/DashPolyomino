@@ -1,4 +1,4 @@
-Ignore the virtualenv files
+# Ignore the virtualenv files
 venv/*
 
 # Ignore pycache

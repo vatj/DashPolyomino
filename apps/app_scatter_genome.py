@@ -5,52 +5,75 @@ from dash.dependencies import Input, Output
 import dash_html_components as html
 import dash_core_components as dcc
 
-from app import app
+from app import app, file_names, extract_parameters
 
 import plotly.graph_objs as go
 
 import pandas as pd
 import re
 
-parameters = dict()
-parameters['ngenes'] = 3
-parameters['colours'] = 7
-parameters['metric_colours'] = 9
-parameters['builds'] = 10
-parameters['njiggle'] = 30
-parameters['threshold'] = 50
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
 
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
-genome_filename = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
-genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'pIDs']
+genome_metric_names = [name for name in file_names if name[:7] == 'GenomeM']
+genome_metric_names.extend([name for name in file_names if name[:7] == 'JiggleG'])
+genome_metric_names.extend([name for name in file_names if name[:16] == 'JiggleDuplicateG'])
 
-df_genome = pd.read_csv(filepath + genome_filename, sep=" ", header=None, names=genome_names)
+dict_df_genome = dict()
+for name in genome_metric_names:
+    dict_df_genome[name] = pd.read_csv(filepath + name, sep=" ")
 
-df_genome['evo'] = df_genome['evolvability'] - df_genome['rare'] - df_genome['loop']
-genome_names.insert(4, 'evo')
+display_names = dict_df_genome[genome_metric_names[0]].columns.values.tolist()
+display_names.remove('original')
+metric_names = dict_df_genome[genome_metric_names[0]].columns.values.tolist()
+metric_names.remove('original')
+metric_names.remove('genome')
+metric_names.remove('pIDs')
 
+# df_genome = dict_df_genome[genome_metric_names[0]]
 
 layout = html.Div(children=[
-    html.H3(children='Genome Metrics'),
-    dcc.Dropdown(id='dropdown-x-genome', value=genome_names[1], options=[
-        {'label': i, 'value': i} for i in genome_names[1:-1]
-    ], multi=False, placeholder='x-axis, ' + genome_names[1]),
-    dcc.Dropdown(id='dropdown-y-genome', value=genome_names[2], options=[
-        {'label': i, 'value': i} for i in genome_names[1:-1]
-    ], multi=False, placeholder='y-axis, ' + genome_names[2]),
-    dcc.Dropdown(id='dropdown-genome', options=[
-        {'label': i, 'value': re.escape(i)} for i in df_genome.pIDs.unique()
-    ], multi=True, value=re.escape(df_genome.pIDs[11]),
-     placeholder='Filter by pID set :' + df_genome.pIDs[11]),
+    html.H3('Which file do you wish to explore?'),
+    html.Div(
+        dcc.Dropdown(id='dropdown-file-genome-metric',
+            options=[{'label': name, 'value': name} for name in genome_metric_names],
+            value=genome_metric_names[0], multi=False, placeholder=genome_metric_names[0]),
+        style={'width': '400px'}),
+    html.H3('Genome Metrics'),
+    dcc.Dropdown(id='dropdown-x-genome', value=metric_names[1],
+    options=[{'label': i, 'value': i} for i in metric_names],
+    multi=False, placeholder='x-axis, ' + metric_names[1]),
+    dcc.Dropdown(id='dropdown-y-genome', value=metric_names[2],
+    options=[{'label': i, 'value': i} for i in metric_names],
+    multi=False, placeholder='y-axis, ' + metric_names[2]),
+    dcc.Dropdown(id='dropdown-pID-genomes',
+    options=[{'label': i, 'value': re.escape(i)}
+    for i in dict_df_genome[genome_metric_names[0]].pIDs.unique()],
+    multi=True, value=re.escape(dict_df_genome[genome_metric_names[0]].pIDs[0]),
+    placeholder='Filter by pID set :' + dict_df_genome[genome_metric_names[0]].pIDs[0]),
     dcc.Graph(id='graph-container-genome')
 ], className="content")
+
+@app.callback(
+    Output('dropdown-pID-genome', 'options'),
+    [Input('dropdown-file-genome-duplicate', 'value')])
+def update_displayed_pID_menu(file):
+    return [{'label': i, 'value': re.escape(i)} for i in dict_df_genome[file].pIDs.unique()]
+
+@app.callback(
+    Output('dropdown-pID-genome', 'value'),
+    [Input('dropdown-file-genome-duplicate', 'value')])
+def update_displayed_pID_menu(file):
+    return re.escape(dict_df_genome[file].pIDs[0])
+
 
 @app.callback(
     Output('graph-container-genome', 'figure'),
     [Input('dropdown-x-genome', 'value'),
      Input('dropdown-y-genome', 'value'),
-     Input('dropdown-genome', 'value')])
-def update_figure_genome(dropdown_x, dropdown_y, dropdown_pIDs):
+     Input('dropdown-pID-genomes', 'value'),
+     Input('dropdown-file-genome-metric', 'value')])
+def update_figure_genome(dropdown_x, dropdown_y, dropdown_pIDs, file):
+    dff_genome = dict_df_genome[file]
     if dropdown_x is None:
         xaxis = genome_names[1]
     else:
@@ -60,17 +83,16 @@ def update_figure_genome(dropdown_x, dropdown_y, dropdown_pIDs):
     else:
         yaxis = dropdown_y
     if dropdown_pIDs is None:
-        pIDs = re.escape(df_genome.pIDs[11])
+        pIDs = re.escape(dff_genome.pIDs[0])
     else:
         pIDs = dropdown_pIDs
-        print(pIDs)
 
-    dff_genome = df_genome[df_genome.pIDs.str.contains('|'.join(pIDs))]
+    dff_genome = dff_genome[dff_genome.pIDs.str.contains('|'.join(pIDs))]
 
     traces = []
 
     traces.append(go.Scatter(
-        x=dff_genome[xaxis], y=dff_genome[yaxis], text=dff_genome['pIDs'],
+        x=dff_genome[xaxis], y=dff_genome[yaxis], text=dff_genome['genome'],
         mode='markers'))
 
     return {'data' : traces,
