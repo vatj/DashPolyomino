@@ -16,33 +16,28 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import re
 
-from app import app
+from app import app, file_names, hdf_file
 
-parameters = dict()
-parameters['ngenes'] = 3
-parameters['colours'] = 7
-parameters['metric_colours'] = 9
-parameters['builds'] = 10
-parameters['njiggle'] = 30
-parameters['threshold'] = 50
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
+genome_metric_names = [name[:-4] for name in file_names if ('GenomeMetric' in name)]
 
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
-genome_filename = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
-genome_names = ['genome', 'srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'diversity', 'neutral_weight', 'pIDs']
+with pd.HDFStore(hdf_file,  mode='r') as store:
+    df_genome = store.select(genome_metric_names[0])
 
-df_genome = pd.read_csv(filepath + genome_filename, sep=" ", header=None, names=genome_names)
-
-df_genome['neutral_weight'] = df_genome['neutral_weight'] * parameters['njiggle']
-
-df_genome['evo'] = df_genome['evolvability'] - df_genome['rare'] - df_genome['loop']
-genome_names.insert(4, 'evo')
+display_names = ['srobustness', 'irobustness', 'evolvability', 'meta_evolvability', 'rare', 'unbound', 'diversity', 'pIDs']
 
 layout = html.Div([
     html.H3('Genome Metric Table'),
+    html.H4('Which file do you wish to explore?'),
+    html.Div(
+        dcc.Dropdown(id='datatable-polyomino-genome-file-selector',
+            options=[{'label': name, 'value': name} for name in genome_metric_names],
+            value=genome_metric_names[0], multi=False, placeholder=genome_metric_names[0]),
+        style={'width': '400px'}),
     dt.DataTable(
         rows=df_genome.round(3).to_dict('records'),
         # optional - sets the order of columns
-        columns=genome_names,
+        columns=display_names,
         row_selectable=True,
         filterable=True,
         sortable=True,
@@ -55,6 +50,13 @@ layout = html.Div([
     ),
 ], className="container")
 
+@app.callback(
+    Output('datatable-polyomino-genome', 'rows'),
+    [Input('datatable-polyomino-genome-file-selector', 'value')])
+def update_displayed_file(file_name):
+    with pd.HDFStore(hdf_file,  mode='r') as store:
+        df_genome = store.select(file_name)
+    return df_genome.round(3).to_dict('records')
 
 @app.callback(
     Output('datatable-polyomino-genome', 'selected_row_indices'),
@@ -85,13 +87,13 @@ def update_figure(rows, selected_row_indices):
         marker['color'][i] = '#FF851B'
     fig.append_trace({
         'x': dff['pIDs'],
-        'y': dff['interrobustness'],
+        'y': dff['irobustness'],
         'type': 'bar',
         'marker': marker
     }, 1, 1)
     fig.append_trace({
         'x': dff['pIDs'],
-        'y': dff['neutral_weight'],
+        'y': dff['unbound'],
         'type': 'bar',
         'marker': marker
     }, 2, 1)
@@ -111,9 +113,3 @@ def update_figure(rows, selected_row_indices):
     }
     fig['layout']['yaxis2']['type'] = 'log'
     return fig
-
-#
-# app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
-#
-# if __name__ == '__main__':
-#     app.run_server(host='127.0.0.1', port=8080, debug=True)

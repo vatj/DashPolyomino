@@ -16,31 +16,26 @@ from dash.dependencies import Input, Output, State
 import pandas as pd
 import re
 
-from app import app
+from app import app, file_names, hdf_file
 
-parameters = dict()
-parameters['ngenes'] = 3
-parameters['colours'] = 7
-parameters['metric_colours'] = 9
-parameters['builds'] = 10
-parameters['njiggle'] = 30
-parameters['threshold'] = 50
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
+set_metric_names = [name for name in file_names if ('SetMetric' in name)]
 
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V5/meeting/'
-set_filename = 'SetMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso.txt'.format(**parameters)
-set_names = ['srobustness', 'interrobustness', 'evolvability', 'rare', 'loop', 'analysed', 'total_neutral', 'diversity', 'pIDs']
-
-df_set = pd.read_csv(filepath + set_filename, sep=" ", header=None, names=set_names)
-
-df_set['evo'] = df_set['evolvability'] - df_set['rare'] - df_set['loop']
-set_names.insert(3, 'evo')
+df_set = pd.read_csv(filepath + set_metric_names[0], sep=" ")
+display_names = ['srobustness', 'irobustness', 'evolvability', 'meta_evolvability', 'rare', 'unbound', 'diversity', 'neutral_size', 'analysed', 'misclassified', 'pIDs']
 
 layout = html.Div([
     html.H3('Set Metric Table'),
+    html.H4('Which file do you wish to explore?'),
+    html.Div(
+        dcc.Dropdown(id='datatable-polyomino-set-file-selector',
+            options=[{'label': name, 'value': name} for name in set_metric_names],
+            value=set_metric_names[0], multi=False, placeholder=set_metric_names[0]),
+        style={'width': '400px'}),
     dt.DataTable(
         rows=df_set.round(3).to_dict('records'),
         # optional - sets the order of columns
-        columns=set_names,
+        columns=display_names,
         row_selectable=True,
         filterable=True,
         sortable=True,
@@ -52,6 +47,13 @@ layout = html.Div([
         id='graph-polyomino-set'
     ),
 ], className="container")
+
+@app.callback(
+    Output('datatable-polyomino-set', 'rows'),
+    [Input('datatable-polyomino-set-file-selector', 'value')])
+def update_displayed_file(file_name):
+    df_set = pd.read_csv(filepath + file_name, sep=" ")
+    return df_set.round(3).to_dict('records')
 
 
 @app.callback(
@@ -83,7 +85,7 @@ def update_figure(rows, selected_row_indices):
         marker['color'][i] = '#FF851B'
     fig.append_trace({
         'x': dff['pIDs'],
-        'y': dff['interrobustness'],
+        'y': dff['irobustness'],
         'type': 'bar',
         'marker': marker
     }, 1, 1)
@@ -101,17 +103,4 @@ def update_figure(rows, selected_row_indices):
     }, 3, 1)
     fig['layout']['showlegend'] = False
     fig['layout']['height'] = 1200
-    # fig['layout']['margin'] = {
-    #     'l': 40,
-    #     'r': 10,
-    #     't': 60,
-    #     'b': 200
-    # }
-    # fig['layout']['yaxis2']['type'] = 'log'
     return fig
-
-#
-# app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"})
-#
-# if __name__ == '__main__':
-#     app.run_server(host='127.0.0.1', port=8080, debug=True)
