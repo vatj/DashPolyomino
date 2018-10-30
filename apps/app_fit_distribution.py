@@ -132,8 +132,8 @@ def update_figure(df_json, metric, genome, x_range):
         return plotly.tools.make_subplots(rows=1, cols=1, shared_xaxes=False)
     df = pd.read_json(df_json)
     plot_df = df[df['original'] == genome][metric]
-    plot_df = plot_df[plot_df < x_range[1]]
-    plot_df = plot_df[plot_df > x_range[0]]
+    plot_df = plot_df[plot_df <= x_range[1]]
+    plot_df = plot_df[plot_df >= x_range[0]]
     plot_df.describe()
     if plot_df.empty:
         return plotly.tools.make_subplots(rows=1, cols=1, shared_xaxes=False)
@@ -141,7 +141,7 @@ def update_figure(df_json, metric, genome, x_range):
     sns.distplot(plot_df, ax=ax)
     plotly_fig = plotly.tools.mpl_to_plotly(fig)
     plotly_fig['layout']['xaxis1']['showgrid'] = True
-    plotly_fig['layout']['xaxis1']['range'] = x_range
+    plotly_fig['layout']['xaxis1']['range'] = True
     plotly_fig['layout']['yaxis1']['showgrid'] = True
     plotly_fig['layout']['yaxis1']['autorange'] = True
     return plotly_fig
