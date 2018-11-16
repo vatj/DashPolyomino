@@ -22,7 +22,7 @@ app.config.suppress_callback_exceptions = True
 with open("./index.json") as fopen:
     file_names = json.load(fopen)
 
-hdf_file = '/rscratch/vatj2/public_html/Polyominoes/data/gpmap/V6/experiment/Processed_GenomeMetrics.h5'
+hdf_file = '/rscratch/vatj2/public_html/Polyominoes/data/gpmap/V8/experiment/Processed_GenomeMetrics.h5'
 
 # from apps import app_table_set, app_table_genome
 # from apps import app_scatter_set, app_scatter_genome
@@ -31,7 +31,7 @@ hdf_file = '/rscratch/vatj2/public_html/Polyominoes/data/gpmap/V6/experiment/Pro
 # from apps import app_duplication_jiggle_set_table #, app_duplication_jiggle_genome_table
 from apps import app_table_set_distribution, app_table_isomorphism
 from apps import app_table_isomorphism_all, app_simple_isomorphism_all
-from apps import app_duplication_set_table, app_duplication_isomorphism
+# from apps import app_duplication_set_table, app_duplication_isomorphism
 from apps import app_fit_distribution
 from apps import app_visual_polyomino
 
@@ -49,8 +49,8 @@ app.layout = html.Div([
     # html.P(dcc.Link('Go to Reproducibility Table', href='/apps/app_reproducibility_table')),
     # html.P(dcc.Link('Go to Duplication Genome Table', href='/apps/app_duplication_jiggle_genome_table')),
     # html.P(dcc.Link('Go to Duplication Set Table', href='/apps/app_duplication_jiggle_set_table')),
-    html.P(dcc.Link('Go to Duplication Set Table', href='/apps/app_duplication_set_table')),
-    html.P(dcc.Link('Go to Duplication Isomorphic', href='/apps/app_duplication_isomorphism')),
+    # html.P(dcc.Link('Go to Duplication Set Table', href='/apps/app_duplication_set_table')),
+    # html.P(dcc.Link('Go to Duplication Isomorphic', href='/apps/app_duplication_isomorphism')),
     html.P(dcc.Link('Go to PhenotypeTable', href='/apps/app_visual_polyomino')),
     html.P(dcc.Link('Go to Set Distribution Table', href='/apps/app_table_set_distribution')),
     html.P(dcc.Link('Go to Isomorphic Table', href='/apps/app_table_isomorphism')),
@@ -80,11 +80,11 @@ def display_page(pathname):
     #     return app_duplication_jiggle_genome_table.layout
     # elif pathname == '/apps/app_duplication_jiggle_set_table':
     #     return app_duplication_jiggle_set_table.layout
-    if pathname == '/apps/app_duplication_set_table':
-        return app_duplication_set_table.layout
-    elif pathname == '/apps/app_duplication_isomorphism':
-        return app_duplication_isomorphism.layout
-    elif pathname == '/apps/app_visual_polyomino':
+    # if pathname == '/apps/app_duplication_set_table':
+        # return app_duplication_set_table.layout
+    # elif pathname == '/apps/app_duplication_isomorphism':
+        # return app_duplication_isomorphism.layout
+    if pathname == '/apps/app_visual_polyomino':
         return app_visual_polyomino.layout
     elif pathname == '/apps/app_fit_distribution':
         return app_fit_distribution.layout

@@ -21,7 +21,7 @@ import re
 
 from app import app, hdf_file, file_names, extract_parameters, PartitionPhenotype
 
-filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V6/experiment/'
+filepath = 'http://files.tcm.phy.cam.ac.uk/~vatj2/Polyominoes/data/gpmap/V8/experiment/'
 
 set_metric_names = [name for name in file_names if name[:9] == 'SetMetric']
 genome_metric_names = [name for name in file_names if name[:12] == 'GenomeMetric']
@@ -30,10 +30,11 @@ set_metric_names.sort(), genome_metric_names.sort()
 df = pd.read_csv(filepath + set_metric_names[0], sep=" ")
 df['diversity_tracker'] = df['diversity_tracker'].apply(lambda x: np.array(eval(x)))
 
-display_names = ['srobustness', 'irobustness', 'evolvability', 'meta_evolvability', 'rare', 'unbound', 'diversity', 'neutral_size', 'analysed', 'misclassified', 'pIDs']
-metrics = ['srobustness', 'irobustness', 'evolvability', 'meta_evolvability', 'rare', 'unbound', 'diversity']
+# display_names = ['srobustness', 'irobustness', 'evolvability', 'ŕobust_evolvability', 'complex_evolvability', 'rare', 'unbound', 'diversity', 'neutral_size', 'analysed', 'misclassified', 'pIDs']
+display_names = ['srobustness', 'irobustness', 'evolvability',  'robust_evolvability', 'complex_evolvability', 'rare', 'unbound', 'diversity', 'pIDs']
+metrics = ['srobustness', 'irobustness', 'evolvability', 'diversity', 'robust_evolvability', 'complex_evolvability', 'rare', 'unbound']
 
-subplot_coord = list(itertools.product(range(1, 4), range(1, 3)))
+subplot_coord = list(itertools.product(range(1, 5), range(1, 3)))
 sns.set()
 
 layout = html.Div([
@@ -82,18 +83,18 @@ def update_displayed_file(file_name):
 def update_figure(rows, selected_row_indices, file_name, barmode):
     dff = pd.DataFrame(rows)
     parameters = extract_parameters(file_name)
-    genome_file = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}'.format(**parameters)
+    genome_file = 'GenomeMetrics_N{ngenes}_C{colours}_T{threshold}_B{builds}_Cx{metric_colours}_J{njiggle}_Iso'.format(**parameters)
     titles = []
     for row_index in (selected_row_indices or []):
         for metric in metrics:
             titles.append('Isomorphic ' + metric + ' Distribution of pID set : ' + str(eval(dff['pIDs'][row_index])))
     fig = plotly.tools.make_subplots(
-        rows=max(3, 3 * len(selected_row_indices)), cols=2,
+        rows=max(4, 4 * len(selected_row_indices)), cols=2,
         # subplot_titles=titles,
         shared_xaxes=False)
-    fig_index = -3
+    fig_index = -4
     for row_index in (selected_row_indices or []):
-        fig_index += 3
+        fig_index += 4
         pID = str(eval(dff['pIDs'][row_index]))
         with pd.HDFStore(hdf_file,  mode='r') as store:
             df_genome = store.select(genome_file, where='pIDs == pID')
@@ -107,12 +108,12 @@ def update_figure(rows, selected_row_indices, file_name, barmode):
                     'marker': dict(color=new_colors[iso_index]),
                     'showlegend': True if metric == 'srobustness' else False
                     }, coord[0] + fig_index, coord[1])
-    for index, metric in zip(range(1, 7), metrics):
+    for index, metric in zip(range(1, 9), metrics):
         fig['layout']['xaxis' + str(index)].update(title=metric)
         fig['layout']['yaxis' + str(index)].update(title='Number of genomes')
     fig['layout']['barmode'] = barmode
     fig['layout']['showlegend'] = True
-    fig['layout']['height'] = max(fig_index, 1) * 1200
+    fig['layout']['height'] = max(fig_index, 1) * 400 * 4
     return fig
 
 
