@@ -31,8 +31,8 @@ df = pd.read_csv(filepath + set_metric_names[0], sep=" ")
 df['diversity_tracker'] = df['diversity_tracker'].apply(lambda x: np.array(eval(x)))
 
 # display_names = ['srobustness', 'irobustness', 'evolvability', 'ŕobust_evolvability', 'complex_evolvability', 'rare', 'unbound', 'diversity', 'neutral_size', 'analysed', 'misclassified', 'pIDs']
-display_names = ['srobustness', 'irobustness', 'evolvability',  'robust_evolvability', 'complex_evolvability', 'rare', 'unbound', 'diversity', 'pIDs']
-metrics = ['srobustness', 'irobustness', 'evolvability', 'diversity', 'robust_evolvability', 'complex_evolvability', 'rare', 'unbound']
+display_names = ['srobustness', 'irobustness', 'evolvability',  'robust_evolvability', 'complex_evolvability', 'rare', 'unbound', 'complex_diversity', 'diversity', 'pIDs']
+metrics = ['srobustness', 'irobustness', 'evolvability',  'complex_diversity', 'diversity', 'robust_evolvability', 'complex_evolvability', 'rare', 'unbound']
 
 subplot_coord = list(itertools.product(range(1, 5), range(1, 3)))
 sns.set()
